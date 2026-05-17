@@ -1,0 +1,81 @@
+{
+  "_path_resolution": "All paths are workspace-relative. Prepend the workspace root when using tools requiring absolute paths.",
+  "change": "research-assistant",
+  "tasks": {
+    "1.1": {
+      "targets": ["research_assistant/pyproject.toml"],
+      "type": "create"
+    },
+    "1.2": {
+      "targets": [
+        "research_assistant/src/research_assistant/__init__.py",
+        "research_assistant/src/research_assistant/agents/__init__.py"
+      ],
+      "type": "create"
+    },
+    "1.3": {
+      "targets": ["research_assistant/Makefile"],
+      "type": "create"
+    },
+    "1.4": {
+      "targets": [],
+      "type": "verify"
+    },
+    "2.1": {
+      "targets": ["research_assistant/src/research_assistant/state.py"],
+      "type": "create"
+    },
+    "2.2": {
+      "targets": ["research_assistant/src/research_assistant/mock_data.py"],
+      "type": "create"
+    },
+    "3.1": {
+      "targets": [
+        "research_assistant/src/research_assistant/agents/clarity.py"
+      ],
+      "type": "create"
+    },
+    "3.2": {
+      "targets": [
+        "research_assistant/src/research_assistant/agents/research.py"
+      ],
+      "type": "create"
+    },
+    "3.3": {
+      "targets": [
+        "research_assistant/src/research_assistant/agents/validator.py"
+      ],
+      "type": "create"
+    },
+    "3.4": {
+      "targets": [
+        "research_assistant/src/research_assistant/agents/synthesis.py"
+      ],
+      "type": "create"
+    },
+    "4.1": {
+      "targets": ["research_assistant/src/research_assistant/graph.py"],
+      "type": "create"
+    },
+    "4.2": {
+      "targets": ["research_assistant/src/research_assistant/graph.py"],
+      "type": "modify"
+    },
+    "5.1": {
+      "targets": ["research_assistant/src/research_assistant/main.py"],
+      "type": "create"
+    },
+    "5.2": {
+      "targets": ["research_assistant/tests/test_demo.py"],
+      "type": "create"
+    },
+    "6.1": {
+      "targets": [],
+      "type": "verify"
+    },
+    "6.2": {
+      "targets": [],
+      "type": "verify"
+    }
+  }
+}

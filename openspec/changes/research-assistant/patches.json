@@ -1,0 +1,108 @@
+{
+  "change": "research-assistant",
+  "patches": [
+    {
+      "task": "1.1",
+      "files": ["research_assistant/pyproject.toml"],
+      "type": "create",
+      "summary": "Created pyproject.toml with langgraph>=0.3,<1.0, langchain-core, langchain-ollama deps, pytest dev extra, src/ layout"
+    },
+    {
+      "task": "1.2",
+      "files": [
+        "research_assistant/src/research_assistant/__init__.py",
+        "research_assistant/src/research_assistant/agents/__init__.py"
+      ],
+      "type": "create",
+      "summary": "Created empty __init__.py for package and agents subpackage"
+    },
+    {
+      "task": "1.3",
+      "files": ["research_assistant/Makefile"],
+      "type": "create",
+      "summary": "Created Makefile with setup, run, test, demo targets"
+    },
+    {
+      "task": "1.4",
+      "files": [],
+      "type": "verify",
+      "summary": "Verified venv + pip install -e .[dev] succeeds (fixed build-backend to setuptools.build_meta)"
+    },
+    {
+      "task": "2.1",
+      "files": ["research_assistant/src/research_assistant/state.py"],
+      "type": "create",
+      "summary": "Created ResearchState TypedDict with Annotated[list[BaseMessage], add_messages] and all state fields"
+    },
+    {
+      "task": "2.2",
+      "files": ["research_assistant/src/research_assistant/mock_data.py"],
+      "type": "create",
+      "summary": "Created MOCK_DATA dict with Apple Inc. and Tesla entries (recent_news, stock_info, key_developments)"
+    },
+    {
+      "task": "3.1",
+      "files": ["research_assistant/src/research_assistant/agents/clarity.py"],
+      "type": "create",
+      "summary": "Created clarity agent with ChatOllama, CLEAR|/NEEDS_CLARIFICATION| parsing, interrupt() on clarification, resume re-classification"
+    },
+    {
+      "task": "3.2",
+      "files": ["research_assistant/src/research_assistant/agents/research.py"],
+      "type": "create",
+      "summary": "Created research agent with case-insensitive substring matching against MOCK_DATA, binary confidence 8/2"
+    },
+    {
+      "task": "3.3",
+      "files": [
+        "research_assistant/src/research_assistant/agents/validator.py"
+      ],
+      "type": "create",
+      "summary": "Created validator agent with key-presence check, attempt tracking, deterministic logic"
+    },
+    {
+      "task": "3.4",
+      "files": [
+        "research_assistant/src/research_assistant/agents/synthesis.py"
+      ],
+      "type": "create",
+      "summary": "Created synthesis agent with ChatOllama summarization, conversation context, AIMessage append"
+    },
+    {
+      "task": "4.1",
+      "files": ["research_assistant/src/research_assistant/graph.py"],
+      "type": "create",
+      "summary": "Created graph.py with StateGraph, 4 nodes, conditional edges, MemorySaver checkpointer, build_graph + get_compiled_graph"
+    },
+    {
+      "task": "4.2",
+      "files": ["research_assistant/src/research_assistant/graph.py"],
+      "type": "modify",
+      "summary": "Routing functions route_after_clarity, route_after_research, route_after_validator included in graph.py creation"
+    },
+    {
+      "task": "5.1",
+      "files": ["research_assistant/src/research_assistant/main.py"],
+      "type": "create",
+      "summary": "Created CLI main.py with while-loop, graph invocation, interrupt detection, Command(resume) handling, quit"
+    },
+    {
+      "task": "5.2",
+      "files": ["research_assistant/tests/test_demo.py"],
+      "type": "create",
+      "summary": "Created test_demo.py with 3 tests: clear query pipeline, unclear query interrupt, low confidence retry loop"
+    },
+    {
+      "task": "6.1",
+      "files": [],
+      "type": "verify",
+      "summary": "All 3 tests pass: test_clear_query_full_pipeline, test_unclear_query_interrupts, test_low_confidence_retry_loop (30.42s)"
+    },
+    {
+      "task": "6.2",
+      "files": [],
+      "type": "verify",
+      "summary": "Interactive verification deferred — tests cover all 3 routing paths programmatically"
+    }
+  ]
+}
