@@ -1,55 +1,114 @@
 # Multi-Agent Research Assistant
 
-A **multi-agent company research assistant** built with **LangGraph**. Orchestrates four specialized agents to answer research questions about companies, supports multi-turn conversation, follow-up questions, and human-in-the-loop clarification when queries are ambiguous.
+A **multi-agent company research assistant** built with **LangGraph**. Four specialized agents collaborate through a `StateGraph` with conditional routing, **human-in-the-loop interrupts**, and multi-turn conversation memory.
+
+Runs **locally** via Ollama (`qwen2.5:3b`) — no cloud LLM keys required.
+
+---
 
 ## Architecture
 
-Four specialized agents wired through a LangGraph state machine:
+```
+User Query
+    │
+    ▼
+┌──────────┐   clear    ┌──────────┐  confidence≥6  ┌───────────┐
+│ Clarity  │ ──────────▶│ Research │ ──────────────▶│ Synthesis │──▶ END
+│ (LLM)    │            │ (determ) │                │  (LLM)    │
+└──────────┘            └──────────┘                └───────────┘
+    │                       ▲  │                        ▲
+    │ needs_clarification   │  │ confidence<6           │
+    ▼                       │  ▼                        │
+ interrupt()             ┌──────────┐  sufficient OR    │
+ ◄─ resume ──┘           │Validator │  max retries ─────┘
+                         │ (determ) │
+                         └──────────┘
+                          insufficient
+                          & attempts<3 ──▶ loop back to Research
+```
 
-| Agent | Role | Routes to |
+### Agents
+
+| Agent | Type | Role |
 |---|---|---|
-| **Clarity Agent** | Detects vague/ambiguous queries; checks for company name | `Interrupt` (ask user) → resume → `Research Agent` |
-| **Research Agent** | Gathers company info (news, financials, recent developments) via search tool (Tavily) or mock data; assigns a confidence score (0–10) | `Validator` if confidence < 6, else `Synthesis` |
-| **Validator Agent** | Reviews completeness and quality of findings | Loops back to `Research` if insufficient (max 3 attempts), else `Synthesis` |
-| **Synthesis Agent** | Produces a coherent, user-friendly summary using full conversation context | `END` |
+| **Clarity** | LLM | Classifies query, extracts company name, triggers `interrupt()` if vague |
+| **Research** | Deterministic | Mock-data lookup with fuzzy matching, confidence scoring (0–10) |
+| **Validator** | Deterministic | Key-presence validation with bounded retry loop (max 3 attempts) |
+| **Synthesis** | LLM | Summarizes findings using full conversation context |
 
 ### Key features
 
-- **Multi-turn conversation** — agents share message history across turns
-- **Human-in-the-loop** — LangGraph `interrupt` pauses the workflow for user clarification
-- **Adaptive routing** — confidence-gated branching between research / validation / synthesis
-- **Bounded retries** — validator loop has a hard ceiling to prevent runaway execution
+- **Conditional routing** — 3 distinct paths (clear → synthesis, low-confidence → validator loop, vague → interrupt)
+- **Human-in-the-loop** — `interrupt()` pauses the graph; `Command(resume=...)` re-enters the clarity node with the user's clarification
+- **Multi-turn memory** — `MemorySaver` checkpointer keyed by `thread_id` preserves state across turns
+- **Message accumulation** — `Annotated[list[BaseMessage], add_messages]` auto-appends across invocations
+- **Bounded retries** — hard ceiling on the validator loop prevents runaway execution
 - **Pluggable search** — Tavily MCP backend or local mock data for offline runs
 
 ## Project layout
 
 ```
-research_assistant/   # graph definition, agent nodes, prompts, state
-openspec/             # change-tracking specs
-spec.md               # original problem statement / requirements
+research_assistant/
+├── pyproject.toml              # deps: langgraph>=0.3,<1.0, langchain-core, langchain-ollama
+├── Makefile                    # setup, run, test, demo targets
+├── src/research_assistant/
+│   ├── state.py                # ResearchState TypedDict
+│   ├── mock_data.py            # Apple Inc. + Tesla mock data
+│   ├── graph.py                # StateGraph assembly, routing, MemorySaver
+│   ├── main.py                 # CLI conversation loop with interrupt handling
+│   └── agents/
+│       ├── clarity.py          # LLM query classification + interrupt
+│       ├── research.py         # Mock lookup + confidence scoring
+│       ├── validator.py        # Key-presence check + attempt tracking
+│       └── synthesis.py        # LLM summarization
+└── tests/
+    └── test_demo.py            # 4 tests (3 isolated + 1 full conversation)
+openspec/                       # change-tracking specs
+spec.md                         # original problem statement
 ```
+
+## Test results
+
+```
+tests/test_demo.py::test_clear_query_full_pipeline      PASSED
+tests/test_demo.py::test_unclear_query_interrupts       PASSED
+tests/test_demo.py::test_low_confidence_retry_loop      PASSED
+tests/test_demo.py::test_full_conversation_demo         PASSED
+
+4 passed in 43.16s
+```
+
+## Spec coverage
+
+| Requirement | Covered by |
+|---|---|
+| 4 specialized agents | `clarity.py`, `research.py`, `validator.py`, `synthesis.py` |
+| Conditional routing (all 3 paths) | `graph.py` + `test_clear`, `test_low_confidence`, `test_unclear` |
+| Human-in-the-loop interrupt + resume | `clarity.py` `interrupt()` + `test_full_conversation` Turn 3 |
+| Multi-turn conversation with history | `MemorySaver` + `test_full_conversation` Turns 1–5 |
+| Follow-up question resolution | `test_full_conversation` Turn 5 |
+| Mock data (Apple Inc. + Tesla) | `mock_data.py` + `test_full_conversation` Turns 1–2 |
+| State management (TypedDict) | `state.py` `ResearchState` |
 
 ## Quick start
 
 ```bash
-# Python side
 cd research_assistant
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-
-# Run the graph
-python -m research_assistant
+make setup    # creates venv, installs deps
+make test     # runs pytest
+make run      # interactive CLI
 ```
 
-Configure a `.env` with `TAVILY_API_KEY` (optional — falls back to mock data) and any LLM provider keys.
+Requires: **Python ≥ 3.11**, **Ollama** running with `qwen2.5:3b` pulled.
 
 ## Tech
 
-- **LangGraph** — multi-agent state machine + interrupts
-- **Python 3.10+**
+- **LangGraph** — multi-agent state machine + interrupts + checkpointing
+- **LangChain Core** — message types and tool abstractions
+- **Ollama** (`qwen2.5:3b`) — local LLM inference
+- **pytest** — full graph + per-agent tests
 - **Tavily** (optional) — web search MCP
-- **pytest** for tests
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
